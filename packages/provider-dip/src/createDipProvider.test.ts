@@ -12,6 +12,55 @@ function createAsyncIterable<T>(items: T[]): AsyncIterable<T> {
   };
 }
 
+function stubDipAgentDetailsFetch(
+  options: {
+    agentKey?: string;
+    agentVersion?: string;
+    agentId?: string;
+    fallbackConversationId?: string;
+  } = {}
+) {
+  const agentKey = options.agentKey ?? 'agent-key';
+  const agentVersion = options.agentVersion ?? 'v0';
+  const agentId = options.agentId ?? 'agent-id-1';
+  const fallbackConversationId = options.fallbackConversationId ?? 'conversation-fallback-1';
+  const agentDetailsUrl = `/api/agent-factory/v3/agent-market/agent/${agentKey}/version/${agentVersion}?is_visit=true`;
+
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url === agentDetailsUrl) {
+      return new Response(
+        JSON.stringify({
+          id: agentId,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        id: fallbackConversationId,
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  });
+  vi.stubGlobal('fetch', fetchMock);
+
+  return {
+    fetchMock,
+    agentDetailsUrl,
+  };
+}
+
 describe('createDipProvider', () => {
   it('uses the default baseUrl when createConversation config is not injected', async () => {
     const fetchMock = vi.fn(async (url: string) => {
@@ -198,6 +247,7 @@ describe('createDipProvider', () => {
   });
 
   it('builds a provider that normalizes full snapshot chunks', async () => {
+    const { fetchMock } = stubDipAgentDetailsFetch();
     let capturedRequest: unknown;
 
     const provider = createDipProvider({
@@ -236,12 +286,23 @@ describe('createDipProvider', () => {
         'X-Business-Domain': 'bd_public',
       },
       body: {
-        agent_key: 'agent-key',
+        query: 'hello',
         conversation_id: 'conversation-1',
-        text: 'hello',
-        increase_stream: true,
+        agent_id: 'agent-id-1',
+        agent_version: 'v0',
+        stream: true,
+        inc_stream: true,
+        executor_version: 'v2',
+        chat_option: {
+          is_need_history: true,
+          is_need_doc_retrival_post_process: true,
+          is_need_progress: true,
+          enable_dependency_cache: true,
+        },
       },
     });
+    expect((capturedRequest as { body: Record<string, unknown> }).body).not.toHaveProperty('text');
+    expect((capturedRequest as { body: Record<string, unknown> }).body).not.toHaveProperty('agent_key');
     expect(events[1]).toMatchObject({
       type: 'message.snapshot',
       message: {
@@ -249,9 +310,13 @@ describe('createDipProvider', () => {
         content: 'Hello from DIP',
       },
     });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.unstubAllGlobals();
   });
 
   it('supports hostAdapter token resolution when no DIP-specific token callback is provided', async () => {
+    stubDipAgentDetailsFetch();
     let capturedRequest: unknown;
 
     const provider = createDipProvider({
@@ -295,6 +360,8 @@ describe('createDipProvider', () => {
         'X-Business-Domain': 'bd_public',
       },
     });
+
+    vi.unstubAllGlobals();
   });
 
   it('uses custom businessDomain for all built-in request headers', async () => {
@@ -449,6 +516,7 @@ describe('createDipProvider', () => {
   });
 
   it('maps deep thinking and regenerate fields into the default DIP request body', async () => {
+    stubDipAgentDetailsFetch();
     let capturedRequest: unknown;
 
     const provider = createDipProvider({
@@ -485,18 +553,24 @@ describe('createDipProvider', () => {
 
     expect(capturedRequest).toMatchObject({
       body: {
-        agent_key: 'agent-key',
+        query: 'please think deeply',
         conversation_id: 'conversation-deep-think-1',
-        text: 'please think deeply',
-        increase_stream: true,
+        stream: true,
+        inc_stream: true,
+        executor_version: 'v2',
         chat_mode: 'deep_thinking',
         regenerate_user_message_id: 'user-message-1',
         regenerate_assistant_message_id: 'assistant-message-0',
       },
     });
+    expect((capturedRequest as { body: Record<string, unknown> }).body).not.toHaveProperty('text');
+    expect((capturedRequest as { body: Record<string, unknown> }).body).not.toHaveProperty('agent_key');
+
+    vi.unstubAllGlobals();
   });
 
   it('maps uploaded attachments into selected_files and forwards temporary_area_id', async () => {
+    stubDipAgentDetailsFetch();
     let capturedRequest: unknown;
 
     const provider = createDipProvider({
@@ -546,9 +620,12 @@ describe('createDipProvider', () => {
         ],
       },
     });
+
+    vi.unstubAllGlobals();
   });
 
   it('maps DipChat-style interrupt resume fields into the default DIP request body', async () => {
+    stubDipAgentDetailsFetch();
     let capturedRequest: unknown;
 
     const provider = createDipProvider({
@@ -609,9 +686,10 @@ describe('createDipProvider', () => {
 
     expect(capturedRequest).toMatchObject({
       body: {
-        agent_key: 'agent-key',
         conversation_id: 'conversation-interrupt-1',
-        increase_stream: true,
+        stream: true,
+        inc_stream: true,
+        executor_version: 'v2',
         interrupted_assistant_message_id: 'assistant-interrupt-previous-1',
         resume_interrupt_info: {
           resume_handle: {
@@ -630,7 +708,11 @@ describe('createDipProvider', () => {
         },
       },
     });
+    expect((capturedRequest as { body: Record<string, unknown> }).body).not.toHaveProperty('query');
     expect((capturedRequest as { body: Record<string, unknown> }).body).not.toHaveProperty('text');
+    expect((capturedRequest as { body: Record<string, unknown> }).body).not.toHaveProperty('agent_key');
+
+    vi.unstubAllGlobals();
   });
 
   it('delegates terminateConversation through the DIP provider config when provided', async () => {
@@ -974,6 +1056,7 @@ describe('createDipProvider', () => {
   });
 
   it('normalizes incremental chunks through the assembler', async () => {
+    stubDipAgentDetailsFetch();
     const provider = createDipProvider({
       baseUrl: 'https://dip.example.com',
       agentKey: 'agent-key',
@@ -995,6 +1078,68 @@ describe('createDipProvider', () => {
     }
 
     expect(messages.at(-1)).toBe('Hello');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('fetches agent details once and reuses it in createConversation and send', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === '/api/agent-factory/v3/agent-market/agent/agent-key/version/v0?is_visit=true') {
+        return new Response(
+          JSON.stringify({
+            id: 'agent-id-cached-1',
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          id: 'conversation-cached-1',
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    let capturedStreamRequest: unknown;
+    const provider = createDipProvider({
+      agentKey: 'agent-key',
+      streamTransport(request) {
+        capturedStreamRequest = request;
+        return createAsyncIterable([]);
+      },
+    });
+
+    await provider.createConversation();
+    for await (const _event of provider.send({ conversationId: 'conversation-cached-1', text: 'hello cached' })) {
+      // consume stream
+    }
+
+    expect(
+      fetchMock.mock.calls.filter(
+        call => call[0] === '/api/agent-factory/v3/agent-market/agent/agent-key/version/v0?is_visit=true'
+      )
+    ).toHaveLength(1);
+    expect(capturedStreamRequest).toMatchObject({
+      body: {
+        query: 'hello cached',
+        agent_id: 'agent-id-cached-1',
+        agent_version: 'v0',
+      },
+    });
+
+    vi.unstubAllGlobals();
   });
 });
 

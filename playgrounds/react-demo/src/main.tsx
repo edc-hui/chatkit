@@ -7,10 +7,11 @@ import { Assistant, ChatKitProvider } from '@kweaver-ai/chatkit-react';
 
 import styles from './App.module.css';
 
-const DIP_ACCESS_TOKEN = 'ory_at_ArqHbl0M2da61Y3y_Nxl0Y7VtCjbab82zpeGo0KoZ3w.V5rLcGvwoCcgg56Rxn9pv2omAcXxikLKz6urhaIT3GY';
+const DIP_ACCESS_TOKEN = 'ory_at_Ove3aBd-PJCbZ7vizuhErqryMfA7lCW-AUHFyTbDKB8.xmPIQIRDCE0Ak1ulnMBBQFCRInLR3JXVgVh-umKW9R0';
 
 const provider = createDipProvider({
-  agentKey: '01KG46K6TT9YBNZ4K7N654GGN9',
+  // agentKey: '01KG46K6TT9YBNZ4K7N654GGN9',
+  agentKey: '01KKXAXPKNH249S83T5CCHJ7AC',
   getAccessToken: async () => DIP_ACCESS_TOKEN,
 });
 

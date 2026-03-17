@@ -19,6 +19,17 @@ const DEFAULT_SANDBOX_SESSION_ID = 'sess-agent-default';
 const DEFAULT_AGENT_VERSION = 'v0';
 const DEFAULT_BUSINESS_DOMAIN = 'bd_public';
 const BUSINESS_DOMAIN_HEADER = 'X-Business-Domain';
+const DEFAULT_EXECUTOR_VERSION = 'v2';
+const DEFAULT_CHAT_OPTION = {
+  is_need_history: true,
+  is_need_doc_retrival_post_process: true,
+  is_need_progress: true,
+  enable_dependency_cache: true,
+};
+
+interface DipAgentDetails {
+  id: string;
+}
 
 function resolveBaseUrl(baseUrl: string): string {
   const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
@@ -80,29 +91,41 @@ async function parseJsonResponse(response: Response): Promise<Record<string, unk
   return payload as Record<string, unknown>;
 }
 
-async function createConversationWithDipApi(
+async function fetchAgentDetails(
   config: DipProviderConfig,
   accessToken: string | undefined,
-  input?: { title?: string }
-): Promise<CreateConversationResult> {
-  const effectiveAgentVersion = config.agentVersion ?? DEFAULT_AGENT_VERSION;
-  const agentDetailsUrl = `${resolveBaseUrl(DEFAULT_AGENT_FACTORY_BASE_URL_V3)}/agent-market/agent/${config.agentKey}/version/${effectiveAgentVersion}?is_visit=true`;
+  agentVersion: string
+): Promise<DipAgentDetails> {
+  const agentDetailsUrl = `${resolveBaseUrl(DEFAULT_AGENT_FACTORY_BASE_URL_V3)}/agent-market/agent/${config.agentKey}/version/${agentVersion}?is_visit=true`;
   const fetcher = getFetcher(config);
-  const agentDetailsHeaders = createRequestHeaders(config, accessToken);
-  const agentDetailsResponse = await fetcher(agentDetailsUrl, {
+  const headers = createRequestHeaders(config, accessToken);
+  const response = await fetcher(agentDetailsUrl, {
     method: 'GET',
-    headers: agentDetailsHeaders,
+    headers,
   });
-  if (!agentDetailsResponse.ok) {
-    throw new Error(`Failed to get agent details: ${agentDetailsResponse.status}`);
+  if (!response.ok) {
+    throw new Error(`Failed to get agent details: ${response.status}`);
   }
 
-  const agentDetails = await parseJsonResponse(agentDetailsResponse);
-  const agentId = agentDetails.id;
+  const payload = await parseJsonResponse(response);
+  const agentId = payload.id;
   if (typeof agentId !== 'string' || !agentId.trim()) {
     throw new Error('DIP agent details response missing id.');
   }
 
+  return {
+    id: agentId,
+  };
+}
+
+async function createConversationWithDipApi(
+  config: DipProviderConfig,
+  accessToken: string | undefined,
+  agentId: string,
+  agentVersion: string,
+  input?: { title?: string }
+): Promise<CreateConversationResult> {
+  const fetcher = getFetcher(config);
   const url = `${resolveBaseUrl(config.baseUrl ?? DEFAULT_DIP_BASE_URL)}/app/${config.agentKey}/conversation`;
   const conversationHeaders = createRequestHeaders(config, accessToken);
   const response = await fetcher(url, {
@@ -111,8 +134,8 @@ async function createConversationWithDipApi(
     body: JSON.stringify({
       ...(input ?? {}),
       agent_id: agentId,
-      agent_version: effectiveAgentVersion,
-      executor_version: 'v2',
+      agent_version: agentVersion,
+      executor_version: DEFAULT_EXECUTOR_VERSION,
     }),
   });
   if (!response.ok) {
@@ -214,7 +237,7 @@ function resolveTemporaryAreaId(input: SendMessageInput): string | undefined {
   return undefined;
 }
 
-function createDefaultRequestBody(input: SendMessageInput, agentKey: string): Record<string, unknown> {
+function createDefaultRequestBody(input: SendMessageInput, _agentKey: string): Record<string, unknown> {
   const chatMode = input.chatMode ?? (input.deepThink ? 'deep_thinking' : undefined);
   const selectedFiles = mapSelectedFiles(input.attachments);
   const temporaryAreaId = resolveTemporaryAreaId(input);
@@ -228,11 +251,8 @@ function createDefaultRequestBody(input: SendMessageInput, agentKey: string): Re
     : undefined;
 
   return {
-    agent_key: agentKey,
-    conversation_id: input.conversationId,
     application_context: input.applicationContext,
-    increase_stream: true,
-    ...((!input.interrupt || input.text.trim().length > 0) ? { text: input.text } : {}),
+    ...((!input.interrupt || input.text.trim().length > 0) ? { query: input.text } : {}),
     ...(temporaryAreaId ? { temporary_area_id: temporaryAreaId } : {}),
     ...(selectedFiles ? { selected_files: selectedFiles } : {}),
     ...(chatMode ? { chat_mode: chatMode } : {}),
@@ -252,6 +272,32 @@ function createDefaultRequestBody(input: SendMessageInput, agentKey: string): Re
 export function createDipProvider(config: DipProviderConfig): ChatProvider {
   const streamTransport = config.streamTransport ?? createSseChunkStream;
   const dipBaseUrl = config.baseUrl ?? DEFAULT_DIP_BASE_URL;
+  const effectiveAgentVersion = config.agentVersion ?? DEFAULT_AGENT_VERSION;
+  let agentDetailsCache: DipAgentDetails | undefined;
+  let agentDetailsPromise: Promise<DipAgentDetails> | undefined;
+
+  const getAgentDetails = async (accessToken?: string): Promise<DipAgentDetails> => {
+    if (agentDetailsCache) {
+      return agentDetailsCache;
+    }
+
+    if (!agentDetailsPromise) {
+      agentDetailsPromise = (async () => {
+        const resolvedAccessToken = accessToken ?? (await resolveAccessToken(config));
+        const details = await fetchAgentDetails(config, resolvedAccessToken, effectiveAgentVersion);
+        agentDetailsCache = details;
+        return details;
+      })().catch(error => {
+        agentDetailsPromise = undefined;
+        throw error;
+      });
+    }
+
+    return agentDetailsPromise;
+  };
+
+  // Preload agent details once and reuse in later built-in requests.
+  void getAgentDetails().catch(() => {});
 
   return {
     async getOnboardingInfo() {
@@ -276,7 +322,8 @@ export function createDipProvider(config: DipProviderConfig): ChatProvider {
       }
 
       const accessToken = await resolveAccessToken(config);
-      return createConversationWithDipApi(config, accessToken, input);
+      const agentDetails = await getAgentDetails(accessToken);
+      return createConversationWithDipApi(config, accessToken, agentDetails.id, effectiveAgentVersion, input);
     },
 
     async uploadFile(input) {
@@ -358,14 +405,25 @@ export function createDipProvider(config: DipProviderConfig): ChatProvider {
 
     async *send(input) {
       const accessToken = await resolveAccessToken(config);
+      const agentDetails = await getAgentDetails(accessToken);
       const requestBody = (config.buildRequestBody ?? createDefaultRequestBody)(input, config.agentKey);
+      const dipRequestBody = {
+        ...requestBody,
+        conversation_id: input.conversationId,
+        agent_id: agentDetails.id,
+        agent_version: effectiveAgentVersion,
+        stream: true,
+        inc_stream: true,
+        executor_version: DEFAULT_EXECUTOR_VERSION,
+        chat_option: DEFAULT_CHAT_OPTION,
+      };
       const headers = createRequestHeaders(config, accessToken);
       const streamUrl = createStreamUrl(dipBaseUrl, config.agentKey);
       const rawStream = streamTransport({
         url: streamUrl,
         method: 'POST',
         headers,
-        body: requestBody,
+        body: dipRequestBody,
         signal: input.signal,
       });
 
