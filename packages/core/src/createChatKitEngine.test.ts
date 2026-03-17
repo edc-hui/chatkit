@@ -431,6 +431,51 @@ describe('createChatKitEngine', () => {
     expect(engine.getState().inputAttachments).toEqual([]);
   });
 
+  it('clears input attachments immediately after send starts', async () => {
+    let releaseStream: (() => void) | undefined;
+
+    const provider: ChatProvider = {
+      async createConversation() {
+        return {
+          conversation: {
+            id: 'conversation-clear-on-send-start',
+          },
+        };
+      },
+      send(input) {
+        return {
+          async *[Symbol.asyncIterator]() {
+            yield { type: 'stream.started', conversationId: input.conversationId } satisfies ProviderEvent;
+            await new Promise<void>(resolve => {
+              releaseStream = resolve;
+            });
+            yield { type: 'stream.completed', conversationId: input.conversationId } satisfies ProviderEvent;
+          },
+        };
+      },
+    };
+
+    const engine = createChatKitEngine({ provider });
+    engine.setInputFiles({
+      attachments: [
+        {
+          source: 'uploaded',
+          fileName: 'brief.md',
+          fileId: 'brief-1',
+          storageKey: 'brief-storage-key',
+        },
+      ],
+    });
+
+    const sendPromise = engine.send({ text: 'send with file' });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(engine.getState().inputAttachments).toEqual([]);
+
+    releaseStream?.();
+    await sendPromise;
+  });
+
   it('uploads files into the temporary area without clearing them during later sends', async () => {
     const uploadFile = vi.fn(async () => ({
       fileName: 'playbook.md',

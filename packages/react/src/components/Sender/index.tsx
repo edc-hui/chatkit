@@ -12,6 +12,7 @@ import IconFont from '../IconFont/index.js';
 import ResizeObserver from '../ResizeObserver/index.js';
 import FileUploadBtn from '../FileUploadBtn/index.js';
 import { uploadTemporaryFile } from '../FileUploadBtn/uploadTemporaryFile.js';
+import { extractNewTemporaryAttachments, resolveSenderState } from './senderState.js';
 import styles from './Sender.module.css';
 
 export interface SenderProps {
@@ -45,9 +46,11 @@ export function Sender(props: SenderProps) {
 
   const inputAttachments = props.inputAttachments ?? [];
   const tempFileList = props.tempFileList ?? [];
-  const displayFiles = inputAttachments.length > 0 ? inputAttachments : tempFileList;
-
-  const inputDisabled = !value.trim() && inputAttachments.length === 0 && tempFileList.length === 0;
+  const { displayFiles, attachmentsToSend, inputDisabled } = resolveSenderState({
+    value,
+    inputAttachments,
+    tempFileList,
+  });
 
   const removeAttachment = (indexToRemove: number) => {
     props.onInputAttachmentsChange?.(inputAttachments.filter((_, index) => index !== indexToRemove));
@@ -58,9 +61,6 @@ export function Sender(props: SenderProps) {
     if ((inputDisabled && !text) || props.loading) {
       return;
     }
-
-    // Since we now merge in display, we should use displayFiles for attachmentsToSend
-    const attachmentsToSend = displayFiles;
 
     await props.onSend({
       text,
@@ -73,6 +73,7 @@ export function Sender(props: SenderProps) {
 
   const handleUploadFile = React.useCallback(
     async (file: File) => {
+      const previousTemporaryAttachments = state.temporaryAttachments;
       const nextState = await uploadTemporaryFile({
         file,
         conversationId: state.currentConversationId,
@@ -80,9 +81,16 @@ export function Sender(props: SenderProps) {
         uploadTemporaryFiles: commands.uploadTemporaryFiles,
       });
 
-      props.onInputAttachmentsChange?.(nextState.temporaryAttachments);
+      const appendedAttachments = extractNewTemporaryAttachments({
+        previousTemporaryAttachments,
+        nextTemporaryAttachments: nextState.temporaryAttachments,
+      });
+      commands.setInputFiles({
+        attachments: appendedAttachments,
+        mode: 'append',
+      });
     },
-    [commands.createConversation, commands.uploadTemporaryFiles, props.onInputAttachmentsChange, state.currentConversationId]
+    [commands.createConversation, commands.setInputFiles, commands.uploadTemporaryFiles, state.currentConversationId, state.temporaryAttachments]
   );
 
   return (
@@ -148,8 +156,15 @@ export function Sender(props: SenderProps) {
                 {props.allowAttachments ? (
                   <FileUploadBtn
                     disabled={props.disabled || props.loading}
-                    onSuccess={temporaryAttachments => {
-                      props.onInputAttachmentsChange?.(temporaryAttachments);
+                    onSuccess={({ temporaryAttachments, previousTemporaryAttachments }) => {
+                      const appendedAttachments = extractNewTemporaryAttachments({
+                        previousTemporaryAttachments,
+                        nextTemporaryAttachments: temporaryAttachments,
+                      });
+                      commands.setInputFiles({
+                        attachments: appendedAttachments,
+                        mode: 'append',
+                      });
                     }}
                   />
                 ) : null}

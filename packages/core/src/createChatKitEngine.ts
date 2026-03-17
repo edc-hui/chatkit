@@ -1192,8 +1192,6 @@ export function createChatKitEngine(options: CreateChatKitEngineOptions): ChatKi
           }
         );
 
-        state.inputAttachments = cloneInputAttachments(preparedInput.attachments);
-
         if (optimisticUserMessageId) {
           const optimisticUserMessageIndex = state.messages.findIndex(message => message.id === optimisticUserMessageId);
           const preparedAttachments = toChatMessageAttachments(preparedInput.attachments);
@@ -1213,12 +1211,13 @@ export function createChatKitEngine(options: CreateChatKitEngineOptions): ChatKi
           }
         }
 
+        state.inputAttachments = [];
+        emitState();
+
         if (controller.signal.aborted) {
-          state.inputAttachments = [];
           if (activeSendController === controller) {
             completeActiveStream(conversationId);
           }
-          emitState();
           return cloneState(state);
         }
 
@@ -1238,20 +1237,19 @@ export function createChatKitEngine(options: CreateChatKitEngineOptions): ChatKi
             activeConversationId = nextConversationId;
           },
         });
-        state.inputAttachments = [];
-        emitState();
         return cloneState(state);
       } catch (error) {
         if (controller.signal.aborted) {
           state.inputAttachments = [];
+          emitState();
           if (activeSendController === controller) {
             completeActiveStream(conversationId);
           }
-          emitState();
           return cloneState(state);
         }
 
         state.inputAttachments = [];
+        emitState();
         applyProviderEvent({ type: 'error', error, conversationId });
         throw error;
       } finally {

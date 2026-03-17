@@ -9,7 +9,10 @@ import { uploadTemporaryFile } from './uploadTemporaryFile.js';
 export interface FileUploadBtnProps {
   disabled?: boolean;
   customBtn?: ReactNode;
-  onSuccess?: (temporaryAttachments: UploadedAttachmentInput[]) => void;
+  onSuccess?: (payload: {
+    temporaryAttachments: UploadedAttachmentInput[];
+    previousTemporaryAttachments: UploadedAttachmentInput[];
+  }) => void;
 }
 
 const FileUploadBtn: React.FC<FileUploadBtnProps> = (props) => {
@@ -19,6 +22,7 @@ const FileUploadBtn: React.FC<FileUploadBtnProps> = (props) => {
 
   const handleUpload = async (file: File) => {
     try {
+      const previousTemporaryAttachments = state.temporaryAttachments;
       const nextState = await uploadTemporaryFile({
         file,
         conversationId: state.currentConversationId,
@@ -26,7 +30,10 @@ const FileUploadBtn: React.FC<FileUploadBtnProps> = (props) => {
         uploadTemporaryFiles: commands.uploadTemporaryFiles,
       });
 
-      onSuccess?.(nextState.temporaryAttachments);
+      onSuccess?.({
+        temporaryAttachments: nextState.temporaryAttachments,
+        previousTemporaryAttachments,
+      });
     } catch (error: any) {
       void messageApi.error(error.message || '上传失败');
       throw error;
