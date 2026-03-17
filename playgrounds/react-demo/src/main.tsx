@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'antd/dist/reset.css';
 
@@ -13,6 +13,16 @@ const provider = createDipProvider({
   // agentKey: '01KG46K6TT9YBNZ4K7N654GGN9',
   agentKey: '01KKXAXPKNH249S83T5CCHJ7AC',
   getAccessToken: async () => DIP_ACCESS_TOKEN,
+  getOnboardingInfo: async () => ({
+    name: "Simple Chat",
+    avatar: "https://zos.alipayobjects.com/rmsportal/ODTLcjxAfvqbxHnVXCYX.png",
+    description: "你好！我是你的智能助手，支持文档问答、代码辅助和各类通用任务。我可以提供帮助：\n\n* **快速查阅** 项目背景与架构\n* **智能解析** 多模态数据特征\n\n欢迎向我提问~",
+    prompts: [
+      { id: "1", label: "项目背景与架构" },
+      { id: "2", label: "支持多模态数据特征" },
+      { id: "3", label: "今天天气怎么样？" }
+    ]
+  })
 });
 
 function App() {

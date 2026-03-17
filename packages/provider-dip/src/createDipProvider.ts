@@ -29,6 +29,15 @@ const DEFAULT_CHAT_OPTION = {
 
 interface DipAgentDetails {
   id: string;
+  name?: string;
+  avatar?: string;
+  avatar_type?: string;
+  config?: {
+    opening_remark_config?: {
+      fixed_opening_remark?: string;
+    };
+    preset_questions?: Array<{ question: string }>;
+  };
 }
 
 function resolveBaseUrl(baseUrl: string): string {
@@ -115,6 +124,10 @@ async function fetchAgentDetails(
 
   return {
     id: agentId,
+    name: typeof payload.name === 'string' ? payload.name : undefined,
+    avatar: typeof payload.avatar === 'string' ? payload.avatar : undefined,
+    avatar_type: typeof payload.avatar_type === 'string' ? payload.avatar_type : undefined,
+    config: payload.config as DipAgentDetails['config'] | undefined,
   };
 }
 
@@ -305,7 +318,26 @@ export function createDipProvider(config: DipProviderConfig): ChatProvider {
         return config.getOnboardingInfo();
       }
 
-      return {};
+      try {
+        const accessToken = await resolveAccessToken(config);
+        const agentDetails = await getAgentDetails(accessToken);
+        const { name, avatar, avatar_type, config: agentConfig } = agentDetails;
+        const greeting = name;
+        const description = agentConfig?.opening_remark_config?.fixed_opening_remark;
+        const presets = agentConfig?.preset_questions || [];
+        const prompts = presets.map(q => ({ label: q.question, message: q.question }));
+
+        return {
+          name,
+          avatar,
+          avatarType: avatar_type,
+          greeting,
+          description,
+          prompts: prompts.length > 0 ? prompts : undefined,
+        };
+      } catch (err) {
+        return {};
+      }
     },
 
     async getContextInfo() {

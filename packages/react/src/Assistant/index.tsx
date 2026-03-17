@@ -9,9 +9,12 @@ import type {
   OnboardingInfo,
   UploadedAttachmentInput,
 } from '@kweaver-ai/chatkit-core';
+import XMarkdown from '@ant-design/x-markdown';
 import { Alert, Button, Card, Flex, Modal, Space, Typography } from 'antd';
+import classNames from 'classnames';
 
 import { useChatKit, useChatKitI18n } from '../ChatKitProvider.js';
+import IconFont from '../components/IconFont/index.js';
 import { ConversationListModal } from '../components/ConversationListModal/index.js';
 import { ConversationsPanel } from '../components/ConversationsPanel/index.js';
 import { MessageList } from '../components/MessageList/index.js';
@@ -492,30 +495,48 @@ export const Assistant = React.forwardRef<ChatKitRef, AssistantProps>(function A
 
         <Card className={styles.messagesCard}>
           {shouldShowOnboarding ? (
-            <Flex vertical gap={12}>
-              {onboardingInfo?.greeting ? <Typography.Title level={5}>{onboardingInfo.greeting}</Typography.Title> : null}
-              {onboardingInfo?.description ? <Typography.Paragraph>{onboardingInfo.description}</Typography.Paragraph> : null}
-              <Space wrap>
-                {(onboardingInfo?.prompts ?? []).map(prompt => (
-                  <Button
-                    key={prompt.id}
-                    onClick={() => {
-                      const text = prompt.message?.trim() || prompt.label.trim();
-                      if (!text) {
-                        return;
-                      }
-
-                      void commands.send({
-                        conversationId: state.currentConversationId,
-                        text,
-                      });
-                    }}
-                  >
-                    {prompt.label}
-                  </Button>
-                ))}
-              </Space>
-            </Flex>
+            <div className={styles.welcomeContainer}>
+              <Flex vertical align="center" style={{ width: '100%' }}>
+              {onboardingInfo?.avatar ? (
+                <img src={onboardingInfo.avatar} alt="agent-avatar" style={{ width: 90, height: 90, borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                <IconFont type={onboardingInfo?.avatarType || 'icon-dip-chat1'} style={{ fontSize: 90, color: '#1677ff' }} />
+              )}
+              <div className={classNames(styles.welcomeName, 'dip-mt-16')}>
+                {onboardingInfo?.name || props.title || t('assistant.title')}
+              </div>
+              </Flex>
+              <div style={{ marginTop: 24, flex: 1, width: '100%' }}>
+                <div style={{ opacity: 0.65, marginBottom: 8 }}>
+                  {onboardingInfo?.description ? <XMarkdown content={onboardingInfo.description} /> : null}
+                </div>
+                {(onboardingInfo?.prompts ?? []).length > 0 && (
+                  <div style={{ marginTop: 28, width: '100%' }}>
+                    <div style={{ color: 'rgba(0, 0, 0, 0.45)', marginBottom: 4 }}>你可以问我：</div>
+                    {(onboardingInfo?.prompts ?? []).map((prompt, index) => (
+                      <div
+                        key={prompt.id || index}
+                        className={styles.welcomeQuestion}
+                        onClick={() => {
+                          const text = prompt.message?.trim() || prompt.label.trim();
+                          if (!text) {
+                            return;
+                          }
+                          void commands.send({
+                            conversationId: state.currentConversationId,
+                            text,
+                          });
+                        }}
+                      >
+                        <div title={prompt.label} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {prompt.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             <MessageList
               messages={state.messages}

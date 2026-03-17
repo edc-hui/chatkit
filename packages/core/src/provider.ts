@@ -19,6 +19,9 @@ export interface OnboardingPrompt {
 }
 
 export interface OnboardingInfo {
+  name?: string;
+  avatar?: string;
+  avatarType?: string;
   greeting?: string;
   description?: string;
   prompts?: OnboardingPrompt[];

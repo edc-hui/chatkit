@@ -1,4 +1,4 @@
-﻿.container {
+.container {
   display: flex;
   gap: 12px;
   min-height: 560px;
@@ -35,4 +35,33 @@
   padding: 8px 10px;
   border: 1px solid #d9d9d9;
   border-radius: 8px;
+}
+
+.welcomeContainer {
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.welcomeName {
+  font-size: 32px;
+  color: var(--dip-text-color, #333);
+  font-weight: 600;
+}
+
+.welcomeQuestion {
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.85);
+  transition: all 0.3s;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 8px;
+}
+
+.welcomeQuestion:hover {
+  background: var(--dip-hover-bg-color, #f5f5f5);
 }
