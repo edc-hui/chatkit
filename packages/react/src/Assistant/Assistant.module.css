@@ -1,0 +1,38 @@
+﻿.container {
+  display: flex;
+  gap: 12px;
+  min-height: 560px;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  background: #fafcff;
+  padding: 12px;
+}
+
+.main {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.headerCard {
+  border-radius: 12px;
+}
+
+.title {
+  margin: 0 !important;
+}
+
+.messagesCard {
+  flex: 1;
+  min-height: 300px;
+  overflow: auto;
+}
+
+.renameInput {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+}

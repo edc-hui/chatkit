@@ -1,0 +1,15 @@
+{
+  "name": "chatkit-js-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@kweaver-ai/chatkit-core": "0.0.0",
+    "@kweaver-ai/chatkit-provider-dip": "0.0.0",
+    "@kweaver-ai/chatkit-shared": "0.0.0"
+  }
+}

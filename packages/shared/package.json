@@ -1,0 +1,26 @@
+{
+  "name": "@kweaver-ai/chatkit-shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./assets/*": "./src/assets/*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "dompurify": "^3.3.3",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.38",
+    "markdown-it": "^14.1.0"
+  }
+}

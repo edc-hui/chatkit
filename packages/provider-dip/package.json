@@ -1,0 +1,23 @@
+{
+  "name": "@kweaver-ai/chatkit-provider-dip",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@kweaver-ai/chatkit-core": "0.0.0",
+    "@microsoft/fetch-event-source": "^2.0.1"
+  }
+}

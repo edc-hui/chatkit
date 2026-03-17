@@ -1,0 +1,18 @@
+﻿.root {
+  width: 280px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-right: 1px solid #f0f0f0;
+}
+
+.conversations {
+  flex: 1;
+  min-height: 220px;
+}
+
+.loading {
+  padding: 4px 0;
+}

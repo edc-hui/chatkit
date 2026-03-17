@@ -1,0 +1,31 @@
+﻿.wrapper {
+  width: 100%;
+  gap: 8px;
+}
+
+.bubble {
+  width: min(820px, 100%);
+  border-radius: 14px;
+}
+
+.assistant {
+  background: #ffffff;
+}
+
+.user {
+  background: #f5f8ff;
+}
+
+.attachment {
+  cursor: pointer;
+}
+
+.errorCard {
+  width: min(820px, 100%);
+  border: 1px solid #ffccc7;
+  background: #fff2f0;
+}
+
+.statusText {
+  font-size: 12px;
+}

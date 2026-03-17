@@ -1,0 +1,38 @@
+{
+  "name": "dip-chatkit-sdk-v2-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "playgrounds/*"
+  ],
+  "scripts": {
+    "dev:js-demo": "npm run dev --workspace chatkit-js-demo",
+    "dev:react-demo": "npm run dev --workspace chatkit-react-demo",
+    "dev:vue-demo": "npm run dev --workspace chatkit-vue-demo",
+    "build:js-demo": "npm run build --workspace chatkit-js-demo",
+    "build:react-demo": "npm run build --workspace chatkit-react-demo",
+    "build:vue-demo": "npm run build --workspace chatkit-vue-demo",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vue/test-utils": "^2.4.6",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.10.2",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8",
+    "vue": "^3.5.13"
+  }
+}

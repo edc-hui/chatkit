@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/chatkit" },
+    { "path": "./packages/core" },
+    { "path": "./packages/shared" },
+    { "path": "./packages/provider-dip" },
+    { "path": "./packages/provider-coze" },
+    { "path": "./packages/react" },
+    { "path": "./packages/vue" }
+  ]
+}
