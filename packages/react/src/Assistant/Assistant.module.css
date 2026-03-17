@@ -56,6 +56,7 @@
   border-radius: 6px;
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   transition: all 0.3s;
   cursor: pointer;
   user-select: none;
