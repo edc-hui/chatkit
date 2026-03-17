@@ -7,7 +7,7 @@ import { Assistant, ChatKitProvider } from '@kweaver-ai/chatkit-react';
 
 import styles from './App.module.css';
 
-const DIP_ACCESS_TOKEN = 'ory_at_nCNSqISCbmAGk5tBjWKHlHCUOndAyfAuQnOhAzLlqbc.0dDQ_4ZZ9ZRq-hj-3sdK_DhVdI8Fsu9n_VVCYzAij4s';
+const DIP_ACCESS_TOKEN = 'ory_at_SszB5Nu-9io3mxj4ooicuDu5i-GP8hMzONGi6xGP-lk.JIwUg-3tIcixuVRZtae-ccSYYk35pL2nXRjqCuGPaFs';
 
 const provider = createDipProvider({
   // agentKey: '01KG46K6TT9YBNZ4K7N654GGN9',

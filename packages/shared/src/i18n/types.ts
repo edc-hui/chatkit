@@ -128,6 +128,8 @@ export type ChatKitMessageKey =
   | 'message.regenerate'
   | 'message.feedback.upvote'
   | 'message.feedback.downvote'
+  | 'agent.badge.builtIn'
+  | 'agent.badge.system'
   | 'sender.placeholder'
   | 'sender.attach'
   | 'sender.deepThink'

@@ -31,7 +31,7 @@ interface DipAgentDetails {
   id: string;
   name?: string;
   avatar?: string;
-  avatar_type?: string;
+  avatar_type?: number | string;
   config?: {
     opening_remark_config?: {
       fixed_opening_remark?: string;
@@ -117,17 +117,18 @@ async function fetchAgentDetails(
   }
 
   const payload = await parseJsonResponse(response);
-  const agentId = payload.id;
+  const data = (payload.data && typeof payload.data === 'object') ? (payload.data as Record<string, any>) : payload;
+  const agentId = data.id;
   if (typeof agentId !== 'string' || !agentId.trim()) {
     throw new Error('DIP agent details response missing id.');
   }
 
   return {
     id: agentId,
-    name: typeof payload.name === 'string' ? payload.name : undefined,
-    avatar: typeof payload.avatar === 'string' ? payload.avatar : undefined,
-    avatar_type: typeof payload.avatar_type === 'string' ? payload.avatar_type : undefined,
-    config: payload.config as DipAgentDetails['config'] | undefined,
+    name: typeof data.name === 'string' ? data.name : undefined,
+    avatar: typeof data.avatar === 'string' ? data.avatar : undefined,
+    avatar_type: (typeof data.avatar_type === 'string' || typeof data.avatar_type === 'number') ? data.avatar_type : undefined,
+    config: data.config as DipAgentDetails['config'] | undefined,
   };
 }
 
@@ -324,13 +325,15 @@ export function createDipProvider(config: DipProviderConfig): ChatProvider {
         const { name, avatar, avatar_type, config: agentConfig } = agentDetails;
         const greeting = name;
         const description = agentConfig?.opening_remark_config?.fixed_opening_remark;
-        const presets = agentConfig?.preset_questions || [];
-        const prompts = presets.map(q => ({ label: q.question, message: q.question }));
+        const prompts = (agentConfig?.preset_questions || []).map((q, idx) => ({
+          id: String(idx),
+          label: q.question,
+        }));
 
         return {
           name,
           avatar,
-          avatarType: avatar_type,
+          avatarType: avatar_type === 1 ? 'icon-dip-chat1' : String(avatar_type),
           greeting,
           description,
           prompts: prompts.length > 0 ? prompts : undefined,

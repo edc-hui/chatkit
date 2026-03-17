@@ -47,3 +47,4 @@
 - DipChat与dip-chatkit-sdk共有的功能，以DipChat的实现为准
 - 在实现DipChat或dip-chatkit-sdk的功能，你要先深度思路并理解已有代码，列出你重构计划，计划中要包含你准备实现哪些功能点，不要急于动手，等我批准再动手
 - 更改核心包的代码之后，要重新build, 避免demo里面使用的是旧版本
+- 静态资源放在packages/shared里面，方便日后react/vue/js共同复用
